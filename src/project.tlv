@@ -37,7 +37,7 @@
    @_stage
       \SV_plus
          // The program in an instruction memory.
-         reg [7:0] instrs [16:0], datam[16:0];
+         reg [7:0] instrs [15:0], datam[15:0];
          initial begin
              instrs[0] = 8'h70; // Custom 8-bit data for instruction 0
              instrs[1] = 8'h01; // Custom 8-bit data for instruction 1
@@ -84,7 +84,7 @@
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
-         $run = 1'b1;//!*ui_in[7];
+         $run = !*ui_in[7];
          $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
@@ -94,17 +94,17 @@
          $data[7:0] = $data_rd;
          
          //-----------------------PC - LOGIC -------------------------
-         $pc[7:0] = $reset_lipsi || >>1$reset_lipsi
-                       ? 8'b0:
+         $pc[3:0] = $reset_lipsi || >>1$reset_lipsi
+                       ? 4'b0:
                     >>1$exit || >>1$is_ld_ind || >>1$is_st_ind 
                        ? >>1$pc:
                     >>2$is_br || (>>2$is_brz && >>1$z) || (>>2$is_brnz && !>>1$z)
-                       ? >>1$instr:
+                       ? >>1$instr[3:0]:
                     >>1$is_brl
-                       ? >>1$acc:
+                       ? >>1$acc[3:0]:
                     >>1$is_ret
-                       ? >>1$data+1'b1:
-                     >>1$pc + 8'b1;
+                       ? >>1$data[3:0]+1'b1:
+                     >>1$pc + 4'b1;
          //---------------------DECODE - LOGIC -----------------------
          $valid = (1'b1^>>1$is_2cyc) && !$reset_lipsi;
          
@@ -183,7 +183,7 @@
          
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
-         $idata_wr_addr[7:0] = $dptr;
+         $idata_wr_addr[3:0] = $dptr;
          //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
          $data_wr[7:0] = !$wr_en ? >>1$data_wr:
                          !$is_brl ? $acc:
