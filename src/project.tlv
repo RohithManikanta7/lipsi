@@ -39,26 +39,21 @@
          // The program in an instruction memory.
          reg [7:0] instrs [31:0], datam[31:0];
          initial begin
-             instrs[0] = 8'h71; // Custom 8-bit data for instruction 0
+             instrs[0] = 8'h70; // Custom 8-bit data for instruction 0
              instrs[1] = 8'h01; // Custom 8-bit data for instruction 1
-             instrs[2] = 8'h9F; // Custom 8-bit data for instruction 2
-             instrs[3] = 8'h01;
-             instrs[4] = 8'h0F;
-             instrs[5] = 8'hDD;
-             instrs[6] = 8'hDD;
-             instrs[7] = 8'hDD;
-             instrs[8] = 8'h01;
-             instrs[9] = 8'h01;
-             instrs[10] = 8'h01;
-             instrs[11] = 8'hFF; // Custom data for instruction 10
-             instrs[12] = 8'h01;
-             instrs[13] = 8'h01;
-             instrs[14] = 8'hDD;
+             instrs[2] = 8'h80; // Custom 8-bit data for instruction 2
+             instrs[3] = 8'h72;
+             instrs[4] = 8'h13;
+             instrs[5] = 8'h82;
+             instrs[6] = 8'hD3;
+             instrs[7] = 8'h00;
+             instrs[8] = 8'hFF;
+             instrs[9] = 8'hFF; // Custom data for instruction 10
              ///data values
-             datam[0] =8'h55;
+             datam[0] =8'h00;
              datam[1] =8'h06;
              datam[2] =8'h04;
-             datam[3] =8'h00;
+             datam[3] =8'h01;
              datam[4] =8'h09;
              datam[8] =8'h05;
          end
@@ -89,8 +84,8 @@
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
-         $run = 1'b0;//!*ui_in[7];
-         $reset_lipsi = *reset || $run;
+         $run = !*ui_in[7];
+         $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
          $imem_rd_addr[4:0] = $pc[4:0];
