@@ -1,4 +1,4 @@
-+\m5_TLV_version 1d: tl-x.org
+\m5_TLV_version 1d: tl-x.org
 \m5
    use(m5-1.0)
    
@@ -37,7 +37,7 @@
    @_stage
       \SV_plus
          // The program in an instruction memory.
-         reg [7:0] instrs [25:0], datam[25:0];
+         reg [7:0] instrs [31:0], datam[31:0];
          initial begin
              instrs[0] = 8'h70; // Custom 8-bit data for instruction 0
              instrs[1] = 8'h01; // Custom 8-bit data for instruction 1
@@ -47,7 +47,7 @@
              instrs[5] = 8'h82;
              instrs[6] = 8'hD3;
              instrs[7] = 8'h00;
-             instrs[8] = 8'h00;
+             instrs[8] = 8'hFF;
              instrs[9] = 8'hFF; // Custom data for instruction 10
              ///data values
              datam[0] =8'h00;
@@ -84,7 +84,7 @@
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
-         $run = !*ui_in[7];
+         $run = 1'b1;//!*ui_in[7];
          $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
@@ -226,6 +226,7 @@
    
    
    // Connect Tiny Tapeout outputs. Note that uio_ outputs are not available in the Tiny-Tapeout-3-based FPGA boards.
+   //*uo_out = 8'b0;
    m5_if_neq(m5_target, FPGA, ['*uio_out = 8'b0;'])
    m5_if_neq(m5_target, FPGA, ['*uio_oe = 8'b0;'])
 
@@ -273,7 +274,7 @@ module top(input logic clk, input logic reset, input logic [31:0] cyc_cnt, outpu
    // Instantiate the Tiny Tapeout module.
    m5_user_module_name tt(.*);
    
-   assign passed = top.cyc_cnt > 25;
+   assign passed = top.cyc_cnt > 80;
    assign failed = 1'b0;
 endmodule
 
