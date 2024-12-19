@@ -273,7 +273,7 @@ module top(input logic clk, input logic reset, input logic [31:0] cyc_cnt, outpu
    // Instantiate the Tiny Tapeout module.
    m5_user_module_name tt(.*);
    
-   assign passed = top.cyc_cnt > 80;
+   assign passed = top.cyc_cnt > 25;
    assign failed = 1'b0;
 endmodule
 
