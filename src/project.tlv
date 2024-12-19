@@ -37,7 +37,7 @@
    @_stage
       \SV_plus
          // The program in an instruction memory.
-         reg [7:0] instrs [31:0], datam[31:0];
+         reg [7:0] instrs [15:0], datam[15:0];
          initial begin
              instrs[0] = 8'h70; // Custom 8-bit data for instruction 0
              instrs[1] = 8'h01; // Custom 8-bit data for instruction 1
@@ -64,7 +64,7 @@
       \SV_plus
          always@(posedge clk)
             if($wr_en)
-               datam\[$idata_wr_addr[4:0]\] <= $data_wr[7:0];
+               datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
 
 \SV
    // Include Tiny Tapeout Lab.
@@ -88,9 +88,9 @@
          $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
-         $imem_rd_addr[4:0] = $pc[4:0];
+         $imem_rd_addr[3:0] = $pc[3:0];
          $instr[7:0] = $instr_mem;
-         $idata_rd_addr[4:0] = $dptr[4:0];
+         $idata_rd_addr[3:0] = $dptr[3:0];
          $data[7:0] = $data_rd;
          
          //-----------------------PC - LOGIC -------------------------
