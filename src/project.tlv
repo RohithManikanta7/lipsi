@@ -47,7 +47,7 @@
              instrs[5] = 8'h82;
              instrs[6] = 8'hD3;
              instrs[7] = 8'h00;
-             instrs[8] = 8'hFF;
+             instrs[8] = 8'h00;
              instrs[9] = 8'hFF; // Custom data for instruction 10
              ///data values
              datam[0] =8'h00;
