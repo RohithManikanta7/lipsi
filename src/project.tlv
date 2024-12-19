@@ -73,10 +73,6 @@
    // (Connect Tiny Tapeout outputs at the end of this template.)
    // ============================================
    
-   |prog
-      @1
-         //$prog = *ui_in[7];
-         //$reset = *reset;
    
    |lipsi
       @1
