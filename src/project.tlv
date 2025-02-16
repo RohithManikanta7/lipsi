@@ -347,8 +347,8 @@ endmodule
          $data_u[7:0] = $take_data && $rx_done
                         ? $rx_byte:
                            >>1$data_u;
-                           
-         $instr_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h5A)
+         
+         $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h5A)
                            ? $data_u - 8'h37:
                         ($data_u >= 8'h61 && $data_u <= 8'h69)
                            ? $data_u - 8'h57:
@@ -358,9 +358,9 @@ endmodule
          $wr_en_l = $take_data && $rx_done && !$prog;
          $imem_wr_addr[7:0] = $address;//$address;
          $data_wr_u[7:0] = $wr_en_l && $take_data
-                           ? $data_u :
+                           ? $value_u :
                            >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $instr_u : >>1$instr_wr;
+         $instr_wr[7:0] = $instr_wr_en? $value_u : >>1$instr_wr;
          
          
          
@@ -470,10 +470,8 @@ endmodule
          $data_wr_l[7:0] = !$wr_en_u ? >>1$data_wr_l:
                          !$is_brl ? $acc:
                          $pc;
-         $digit[3:0] = !$reset_uart && $take_data
-                        ? $data_u:
-                     !$reset_uart && $take_address
-                        ? $instr_u:
+         $digit[3:0] = !$reset_uart && ($take_data || $take_address)
+                        ? $value_u:
                      *ui_in[0]
                         ? $acc[7:4] :
                         $acc[3:0];
