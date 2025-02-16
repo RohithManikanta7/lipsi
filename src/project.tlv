@@ -355,7 +355,7 @@ endmodule
                           ? 1'b0:
                           >>1$first_digit;
          $first_digit_u = $first_digit && $rx_done;
-         $first_digit_un = !$firgt_digit && $rx_done;
+         $first_digit_un = !$first_digit && $rx_done;
          $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_u)
                            ? {($data_u[3:0] - 4'h7) , >>1$value_u[3:0]}:
                         ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_un)
@@ -500,7 +500,7 @@ endmodule
          $data_wr_l[7:0] = !$wr_en_l 
                             ? >>1$data_wr_l:
                          !$is_brl 
-                            ? $acc:
+                            ? $acc[7:0]:
                             $pc;
          $digit[3:0] = !$reset_uart && ($take_data) && *ui_in[0]
                         ? $value_u[7:4]:
