@@ -307,10 +307,10 @@ endmodule
       @1
          $wr_en = $reset_uart ? $wr_en_l : $wr_en_u;
          $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
-         $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address[3:0];
+         $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address_u[3:0];
          //uart
          $rx_serial = *ui_in[6];   // pmod connector's TxD port
-         $reset_uart = *reset && $run;
+         $reset_uart = *reset || $run;
          // uart receiver can be integrated the following way
          \SV_plus
             uart_rx #(20000000,115200) uart_rx_1(.clk(*clk),
@@ -319,11 +319,11 @@ endmodule
                                             .rx_done($$rx_done),
                                             .rx_byte($$rx_byte[7:0])
                                             );
-         $is_p = ($rx_byte==8'h70) && ($rx_byte==8'h50) && $rx_done;
-         $is_d = ($rx_byte==8'h84) && ($rx_byte==8'hc0) && $rx_done;
+         $is_p = (($rx_byte==8'h50) || ($rx_byte==8'h70)) && $rx_done;
+         $is_m = (($rx_byte==8'h4D) || ($rx_byte==8'h6D)) && $rx_done;
          $prog = !$reset_uart && $is_p
                      ?1'b1:
-                  !$reset_uart && $is_d
+                  !$reset_uart && $is_m
                      ?1'b0:
                   >>1$prog;
          $is_enter = $rx_byte==8'h0d && $rx_done;
@@ -347,14 +347,50 @@ endmodule
          $data_u[7:0] = $take_data && $rx_done
                         ? $rx_byte:
                            >>1$data_u;
-                           
-                           
+         $first_digit = $is_space
+                          ? 1'b1:
+                       $is_enter
+                          ? 1'b1:
+                       >>1$rx_done || >>2$rx_done
+                          ? 1'b0:
+                          >>1$first_digit;
+         $first_digit_u = $first_digit && $rx_done;
+         $first_digit_un = !$first_digit && $rx_done;
+         $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_u)
+                           ? {($data_u[3:0] - 4'h7) , >>1$value_u[3:0]}:
+                        ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_un)
+                           ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
+                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit_un)
+                           ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
+                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit_u)
+                           ? {$data_u[3:0] - 4'h7,>>1$value_u[3:0]}:
+                        ($first_digit_u)
+                           ? {$data_u[3:0],>>1$value_u[3:0]}:
+                        $rx_done
+                           ? {>>1$value_u[7:4],$data_u[3:0]}:
+                           >>1$value_u[7:0];
+         $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit_u)
+                           ? {($address[3:0] - 4'h7) , >>1$address_u[3:0]}:
+                        ($address >= 8'h41 && $address <= 8'h46 && $first_digit_un)
+                           ? {>>1$address_u[7:4],($address[3:0] - 4'h7)}:
+                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit_u)
+                           ? {$address[3:0] - 4'h7,>>1$address_u[3:0]}:
+                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit_un)
+                           ? {>>1$address_u[7:4],$address[3:0] - 4'h7}:
+                        $first_digit_u
+                           ? {$address[3:0],>>1$address_u[3:0]}:
+                        $rx_done
+                           ? {>>1$address_u[7:4],$address[3:0]}:
+                           >>1$address_u[7:0];
+         
          
          $instr_wr_en = $take_data && $rx_done && $prog;
-         $wr_en_l = $take_data && $rx_done && !$prog;
-         $imem_wr_addr[7:0] = $address;//$address;
-         $data_wr_u[7:0] = $wr_en_l? $data_u : >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $data_u : >>1$instr_wr;
+         $wr_en_u = $take_data && $rx_done && !$prog;
+         $imem_wr_addr[7:0] = $address_u;//$address;
+         $data_wr_u[7:0] = $wr_en_u && $take_data
+                           ? $value_u :
+                           >>1$data_wr_u;
+         $instr_wr[7:0] = $instr_wr_en? $value_u : >>1$instr_wr;
          
          
          
@@ -419,7 +455,7 @@ endmodule
                     >>1$dptr;
          
          $rd_en = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
-         $wr_en_u = $is_st || >>1$is_st_ind || $is_brl;
+         $wr_en_l = $is_st || >>1$is_st_ind || $is_brl;
          $op[7:0] = >>1$is_ALU_imm
                        ? $instr :
                     $is_ALU_reg
@@ -460,11 +496,23 @@ endmodule
          
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
-         $idata_wr_addr_l[3:0] = $dptr;
-         $data_wr_l[7:0] = !$wr_en_u ? >>1$data_wr_l:
-                         !$is_brl ? $acc:
-                         $pc;
-         $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
+         $idata_wr_addr_l[3:0] = $dptr[3:0];
+         $data_wr_l[7:0] = !$wr_en_l 
+                            ? >>1$data_wr_l:
+                         !$is_brl 
+                            ? $acc[7:0]:
+                            $pc;
+         $digit[3:0] = $rx_done;/*!$reset_uart && ($take_data) && *ui_in[0]
+                        ? $value_u[7:4]:
+                     !$reset_uart && ($take_data)
+                        ? $value_u[3:0]:
+                     !$reset_uart && ($take_address) && *ui_in[0]
+                        ? $address_u[7:4]:
+                     !$reset_uart && ($take_address)
+                        ? $address_u[3:0]:
+                     *ui_in[0]
+                        ? $acc[7:4] :
+                        $acc[3:0];*/
          *uo_out[7:0] = $digit[3:0] == 4'b0000
              ? 8'b00111111 :
              $digit[3:0] == 4'b0001
