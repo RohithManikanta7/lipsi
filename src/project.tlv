@@ -374,13 +374,13 @@ endmodule
                         ($address >= 8'h41 && $address <= 8'h5A && $first_digit_un)
                            ? {>>1$address_u[7:4],($address[3:0] - 4'h7)}:
                         ($address >= 8'h61 && $address <= 8'h69 && $first_digit_u)
-                           ? {$address[3:0] - 4'h7,$address_u[3:0]}:
+                           ? {$address[3:0] - 4'h7,>>1$address_u[3:0]}:
                         ($address >= 8'h61 && $address <= 8'h69 && $first_digit_un)
-                           ? {$address[7:4],$address[3:0] - 4'h7}:
+                           ? {>>1$address_u[7:4],$address[3:0] - 4'h7}:
                         $first_digit_u
-                           ? {$address[3:0],$address_u[3:0]}:
+                           ? {$address[3:0],>>1$address_u[3:0]}:
                         $rx_done
-                           ? {$address_u[7:4],$address[3:0]}:
+                           ? {>>1$address_u[7:4],$address[3:0]}:
                            >>1$address_u[7:0];
          
          
