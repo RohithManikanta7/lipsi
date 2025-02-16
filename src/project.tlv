@@ -65,6 +65,10 @@
          always@(posedge clk)
             if($wr_en)
                datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
+      always@(posedge clk)
+            if($instr_wr_en)
+               instrs\[$imem_wr_addr[3:0]\] <= $instr_wr[7:0];
+
 \SV
 module uart_tx 
     #(parameter int FREQUENCY = 10000000, parameter int BAUD_RATE = 9600)
