@@ -301,6 +301,24 @@ endmodule
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
+         //uart
+         $rx_serial = *ui_in[6];   // pmod connector's TxD port
+         $reset_uart = *reset && $run;
+         // uart receiver can be integrated the following way
+         \SV_plus
+            uart_rx #(20000000,115200) uart_rx_1(.clk(*clk),
+                                            .reset($reset_uart),
+                                            .rx_serial($rx_serial),
+                                            .rx_done($$rx_done),
+                                            .rx_byte($$rx_byte[7:0])
+                                            );
+         
+         
+         
+         
+         
+         
+         //lipsi
          $run = !*ui_in[7];
          $reset_lipsi = *reset || !$run;
          
