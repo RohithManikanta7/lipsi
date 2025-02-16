@@ -354,7 +354,7 @@ endmodule
          $wr_en_l = $take_data && $rx_done && !$prog;
          $imem_wr_addr[7:0] = $address;//$address;
          $data_wr_u[7:0] = $wr_en_l? $data : >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en_l? $data : >>1$instr_wr;
+         $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
          
          
          
