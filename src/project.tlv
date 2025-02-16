@@ -344,7 +344,7 @@ endmodule
          $address[7:0] = $take_address && $rx_done
                         ? $rx_byte:
                         $is_enter
-                        ? 8'hFF;
+                        ? 8'hFF:
                            >>1$address;
          
          $data_u[7:0] = $take_data && $rx_done
