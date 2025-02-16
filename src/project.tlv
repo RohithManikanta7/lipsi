@@ -319,11 +319,11 @@ endmodule
                                             .rx_done($$rx_done),
                                             .rx_byte($$rx_byte[7:0])
                                             );
-         $is_p = ($rx_byte==8'h70) && ($rx_byte==8'h50) && $rx_done;
-         $is_d = ($rx_byte==8'h84) && ($rx_byte==8'hc0) && $rx_done;
+         $is_p = ($rx_byte==8'h50) && ($rx_byte==8'h64) && $rx_done;
+         $is_m = ($rx_byte==8'h4D) && ($rx_byte==8'h6D) && $rx_done;
          $prog = !$reset_uart && $is_p
                      ?1'b1:
-                  !$reset_uart && $is_d
+                  !$reset_uart && $is_m
                      ?1'b0:
                   >>1$prog;
          $is_enter = $rx_byte==8'h0d && $rx_done;
@@ -348,13 +348,19 @@ endmodule
                         ? $rx_byte:
                            >>1$data_u;
                            
-                           
+         $instr_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h5A)
+                           ? $data_u - 8'h37:
+                        ($data_u >= 8'h61 && $data_u <= 8'h69)
+                           ? $data_u - 8'h57:
+                           $data_u - 8'h30;
          
          $instr_wr_en = $take_data && $rx_done && $prog;
          $wr_en_l = $take_data && $rx_done && !$prog;
          $imem_wr_addr[7:0] = $address;//$address;
-         $data_wr_u[7:0] = $wr_en_l? $data_u : >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $data_u : >>1$instr_wr;
+         $data_wr_u[7:0] = $wr_en_l && $take_data
+                           ? $data_u :
+                           >>1$data_wr_u;
+         $instr_wr[7:0] = $instr_wr_en? $instr_u : >>1$instr_wr;
          
          
          
@@ -464,7 +470,13 @@ endmodule
          $data_wr_l[7:0] = !$wr_en_u ? >>1$data_wr_l:
                          !$is_brl ? $acc:
                          $pc;
-         $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
+         $digit[3:0] = !$reset_uart && $take_data
+                        ? $data_u:
+                     !$reset_uart && $take_address
+                        ? $instr_u:
+                     *ui_in[0]
+                        ? $acc[7:4] :
+                        $acc[3:0];
          *uo_out[7:0] = $digit[3:0] == 4'b0000
              ? 8'b00111111 :
              $digit[3:0] == 4'b0001
