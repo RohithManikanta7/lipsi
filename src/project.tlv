@@ -65,7 +65,7 @@
          always@(posedge clk)
             if($wr_en)
                datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
-      always@(posedge clk)
+         always@(posedge clk)
             if($instr_wr_en)
                instrs\[$imem_wr_addr[3:0]\] <= $instr_wr[7:0];
 
@@ -350,7 +350,7 @@ endmodule
          $instr_wr_en = $take_data && $rx_done && $prog;
          $wr_en = $take_data && $rx_done && !$prog;
          $idata_wr_addr[7:0] = 8'b101;//$address;
-         $imem_wr_addr[7:0] = 8'b101;//$address;
+         $imem_wr_addr[3:0] = 4'b101;//$address;
          $data_wr[7:0] = $wr_en? $data : >>1$data_wr;
          $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
          
