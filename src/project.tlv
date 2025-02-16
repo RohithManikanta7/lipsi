@@ -328,12 +328,13 @@ endmodule
                   >>1$prog;
          $is_enter = $rx_byte==8'h0d && $rx_done;
          $is_space = $rx_byte==8'h20 && $rx_done;
+         $is_next = $rx_byte==8'h3a && $rx_done;
          $take_address = >>1$is_enter
                            ? 1'b1:
-                        $is_space
+                        $is_next
                            ?1'b0:
                         >>1$take_address;
-         $take_data = >>1$is_space
+         $take_data = >>1$is_next
                            ? 1'b1:
                         $is_enter
                            ?1'b0:
@@ -347,38 +348,36 @@ endmodule
          $data_u[7:0] = $take_data && $rx_done
                         ? $rx_byte:
                            >>1$data_u;
-         $first_digit = $is_space
+         $first_digit = $is_next
                           ? 1'b1:
                        $is_enter
                           ? 1'b1:
-                       >>1$rx_done || >>2$rx_done
+                       $is_space
                           ? 1'b0:
                           >>1$first_digit;
-         $first_digit_u = $first_digit && $rx_done;
-         $first_digit_un = !$first_digit && $rx_done;
-         $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_u)
-                           ? {($data_u[3:0] - 4'h7) , >>1$value_u[3:0]}:
-                        ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit_un)
+         $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit && $rx_done)
+                           ? {($data_u[3:0] - 4'h7) , 4'h0}:
+                        ($data_u >= 8'h41 && $data_u <= 8'h46 && !$first_digit && $rx_done)
                            ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
-                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit_un)
+                        ($data_u >= 8'h61 && $data_u <= 8'h66 && !$first_digit && $rx_done)
                            ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
-                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit_u)
-                           ? {$data_u[3:0] - 4'h7,>>1$value_u[3:0]}:
-                        ($first_digit_u)
-                           ? {$data_u[3:0],>>1$value_u[3:0]}:
+                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit && $rx_done)
+                           ? {$data_u[3:0] - 4'h7,4'h0}:
+                        ($first_digit && $rx_done)
+                           ? {$data_u[3:0],4'h0}:
                         $rx_done
                            ? {>>1$value_u[7:4],$data_u[3:0]}:
                            >>1$value_u[7:0];
-         $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit_u)
-                           ? {($address[3:0] - 4'h7) , >>1$address_u[3:0]}:
-                        ($address >= 8'h41 && $address <= 8'h46 && $first_digit_un)
+         $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit && $rx_done)
+                           ? {($address[3:0] - 4'h7) , 4'h0}:
+                        ($address >= 8'h41 && $address <= 8'h46 && !$first_digit && $rx_done)
                            ? {>>1$address_u[7:4],($address[3:0] - 4'h7)}:
-                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit_u)
-                           ? {$address[3:0] - 4'h7,>>1$address_u[3:0]}:
-                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit_un)
+                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit && $rx_done)
+                           ? {$address[3:0] - 4'h7,4'h0}:
+                        ($address >= 8'h61 && $address <= 8'h69 && !$first_digit && $rx_done)
                            ? {>>1$address_u[7:4],$address[3:0] - 4'h7}:
-                        $first_digit_u
-                           ? {$address[3:0],>>1$address_u[3:0]}:
+                        $first_digit && $rx_done
+                           ? {$address[3:0],4'h0}:
                         $rx_done
                            ? {>>1$address_u[7:4],$address[3:0]}:
                            >>1$address_u[7:0];
@@ -502,7 +501,7 @@ endmodule
                          !$is_brl 
                             ? $acc[7:0]:
                             $pc;
-         $digit[3:0] = {4*$rx_done};/*!$reset_uart && ($take_data) && *ui_in[0]
+         $digit[3:0] = !$reset_uart && ($take_data) && *ui_in[0]
                         ? $value_u[7:4]:
                      !$reset_uart && ($take_data)
                         ? $value_u[3:0]:
@@ -512,7 +511,7 @@ endmodule
                         ? $address_u[3:0]:
                      *ui_in[0]
                         ? $acc[7:4] :
-                        $acc[3:0];*/
+                        $acc[3:0];
          *uo_out[7:0] = $digit[3:0] == 4'b0000
              ? 8'b00111111 :
              $digit[3:0] == 4'b0001
