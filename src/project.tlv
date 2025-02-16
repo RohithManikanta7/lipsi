@@ -502,7 +502,7 @@ endmodule
                          !$is_brl 
                             ? $acc[7:0]:
                             $pc;
-         $digit[3:0] = $rx_done;/*!$reset_uart && ($take_data) && *ui_in[0]
+         $digit[3:0] = {4*$rx_done};/*!$reset_uart && ($take_data) && *ui_in[0]
                         ? $value_u[7:4]:
                      !$reset_uart && ($take_data)
                         ? $value_u[3:0]:
