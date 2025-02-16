@@ -312,7 +312,43 @@ endmodule
                                             .rx_done($$rx_done),
                                             .rx_byte($$rx_byte[7:0])
                                             );
+         $is_p = ($rx_byte==8'h70) && ($rx_byte==8'h50) && $rx_done;
+         $is_d = ($rx_byte==8'h84) && ($rx_byte==8'hc0) && $rx_done;
+         $prog = !$reset_uart && $is_p
+                     ?1'b1:
+                  !$reset_uart && $is_d
+                     ?1'b0:
+                  >>1$prog;
+         $is_enter = $rx_byte==8'h0d && $rx_done;
+         $is_space = $rx_byte==8'h20 && $rx_done;
+         $take_address = >>1$is_enter
+                           ? 1'b1:
+                        $is_space
+                           ?1'b0:
+                        >>1$take_address;
+         $take_data = >>1$is_space
+                           ? 1'b1:
+                        $is_enter
+                           ?1'b0:
+                        >>1$take_data;
          
+         
+         $address[7:0] = $take_address && $rx_done
+                        ? $rx_byte:
+                           >>1$address;
+         
+         $data[7:0] = $take_data && $rx_done
+                        ? $rx_byte:
+                           >>1$data;
+                           
+                           
+         
+         $instr_wr_en = $take_data && $rx_done && $prog;
+         $wr_en = $take_data && $rx_done && !$prog;
+         $idata_wr_addr[7:0] = 8'b101;//$address;
+         $imem_wr_addr[7:0] = 8'b101;//$address;
+         $data_wr[7:0] = $wr_en? $data : >>1$data_wr;
+         $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
          
          
          
