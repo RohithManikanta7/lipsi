@@ -305,6 +305,9 @@ endmodule
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
+         
+         $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
+         
          //uart
          $rx_serial = *ui_in[6];   // pmod connector's TxD port
          $reset_uart = *reset && $run;
@@ -351,7 +354,7 @@ endmodule
          $wr_en = $take_data && $rx_done && !$prog;
          $idata_wr_addr[7:0] = 8'b101;//$address;
          $imem_wr_addr[3:0] = 4'b101;//$address;
-         $data_wr[7:0] = $wr_en? $data : >>1$data_wr;
+         $data_wr_u[7:0] = $wr_en? $data : >>1$data_wr_u;
          $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
          
          
@@ -460,7 +463,7 @@ endmodule
          $z = $acc == 8'b0;
          $idata_wr_addr[3:0] = $dptr;
          //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
-         $data_wr[7:0] = !$wr_en ? >>1$data_wr:
+         $data_wr_l[7:0] = !$wr_en ? >>1$data_wr_l:
                          !$is_brl ? $acc:
                          $pc;
          $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
