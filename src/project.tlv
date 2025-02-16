@@ -344,17 +344,17 @@ endmodule
                         ? $rx_byte:
                            >>1$address;
          
-         $data[7:0] = $take_data && $rx_done
+         $data_u[7:0] = $take_data && $rx_done
                         ? $rx_byte:
-                           >>1$data;
+                           >>1$data_u;
                            
                            
          
          $instr_wr_en = $take_data && $rx_done && $prog;
          $wr_en_l = $take_data && $rx_done && !$prog;
          $imem_wr_addr[7:0] = $address;//$address;
-         $data_wr_u[7:0] = $wr_en_l? $data : >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
+         $data_wr_u[7:0] = $wr_en_l? $data_u : >>1$data_wr_u;
+         $instr_wr[7:0] = $instr_wr_en? $data_u : >>1$instr_wr;
          
          
          
