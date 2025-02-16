@@ -8,7 +8,6 @@
    // #  Empty template for Tiny Tapeout Makerchip Projects  #
    // #                                                      #
    // ########################################################
-
    
    // ========
    // Settings
@@ -70,12 +69,7 @@
             if($instr_wr_en)
                instrs\[$imem_wr_addr[3:0]\] <= $instr_wr[7:0];
 
-               
-               
 \SV
-   // Include Tiny Tapeout Lab.
-   m4_include_lib(['https:/']['/raw.githubusercontent.com/os-fpga/Virtual-FPGA-Lab/5744600215af09224b7235479be84c30c6e50cb7/tlv_lib/tiny_tapeout_lib.tlv'])
-   
 module uart_tx 
     #(parameter int FREQUENCY = 10000000, parameter int BAUD_RATE = 9600)
     (
@@ -293,7 +287,6 @@ module uart_rx
     assign rx_byte = r_Rx_Byte;
 endmodule
 
-
 \SV
    // Include Tiny Tapeout Lab.
    m4_include_lib(['https:/']['/raw.githubusercontent.com/os-fpga/Virtual-FPGA-Lab/5744600215af09224b7235479be84c30c6e50cb7/tlv_lib/tiny_tapeout_lib.tlv'])
@@ -309,14 +302,12 @@ endmodule
    // |                |
    // ==================
    
-   
-   
-   
-   
-   
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
+         $wr_en = $reset_uart ? $wr_en_l : $wr_en_u;
+         $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
+         $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address[3:0];
          //uart
          $rx_serial = *ui_in[6];   // pmod connector's TxD port
          $reset_uart = *reset && $run;
@@ -328,8 +319,6 @@ endmodule
                                             .rx_done($$rx_done),
                                             .rx_byte($$rx_byte[7:0])
                                             );
-         
-         
          $is_p = ($rx_byte==8'h70) && ($rx_byte==8'h50) && $rx_done;
          $is_d = ($rx_byte==8'h84) && ($rx_byte==8'hc0) && $rx_done;
          $prog = !$reset_uart && $is_p
@@ -355,28 +344,23 @@ endmodule
                         ? $rx_byte:
                            >>1$address;
          
-         $data[7:0] = $take_data && $rx_done
+         $data_u[7:0] = $take_data && $rx_done
                         ? $rx_byte:
-                           >>1$data;
+                           >>1$data_u;
                            
                            
          
          $instr_wr_en = $take_data && $rx_done && $prog;
-         $wr_en = $take_data && $rx_done && !$prog;
-         $idata_wr_addr[7:0] = 8'b101;//$address;
-         $imem_wr_addr[7:0] = 8'b101;//$address;
-         $data_wr[7:0] = $wr_en? $data : >>1$data_wr;
-         $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
-         
+         $wr_en_l = $take_data && $rx_done && !$prog;
+         $imem_wr_addr[7:0] = $address;//$address;
+         $data_wr_u[7:0] = $wr_en_l? $data_u : >>1$data_wr_u;
+         $instr_wr[7:0] = $instr_wr_en? $data_u : >>1$instr_wr;
          
          
          
          
          
          //lipsi
-         
-         
-         
          $run = !*ui_in[7];
          $reset_lipsi = *reset || !$run;
          
@@ -387,17 +371,17 @@ endmodule
          $data[7:0] = $data_rd;
          
          //-----------------------PC - LOGIC -------------------------
-         $pc[7:0] = $reset_lipsi || >>1$reset_lipsi
-                       ? 8'b0:
+         $pc[3:0] = $reset_lipsi || >>1$reset_lipsi
+                       ? 4'b0:
                     >>1$exit || >>1$is_ld_ind || >>1$is_st_ind 
                        ? >>1$pc:
                     >>2$is_br || (>>2$is_brz && >>1$z) || (>>2$is_brnz && !>>1$z)
-                       ? >>1$instr:
+                       ? >>1$instr[3:0]:
                     >>1$is_brl
-                       ? >>1$acc:
+                       ? >>1$acc[3:0]:
                     >>1$is_ret
-                       ? >>1$data+1'b1:
-                     >>1$pc + 8'b1;
+                       ? >>1$data[3:0]+1'b1:
+                     >>1$pc + 4'b1;
          //---------------------DECODE - LOGIC -----------------------
          $valid = (1'b1^>>1$is_2cyc) && !$reset_lipsi;
          
@@ -435,7 +419,7 @@ endmodule
                     >>1$dptr;
          
          $rd_en = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
-         $wr_en = $is_st || >>1$is_st_ind || $is_brl;
+         $wr_en_u = $is_st || >>1$is_st_ind || $is_brl;
          $op[7:0] = >>1$is_ALU_imm
                        ? $instr :
                     $is_ALU_reg
@@ -476,9 +460,8 @@ endmodule
          
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
-         $idata_wr_addr[7:0] = $dptr;
-         //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
-         $data_wr[7:0] = !$wr_en ? >>1$data_wr:
+         $idata_wr_addr_l[3:0] = $dptr;
+         $data_wr_l[7:0] = !$wr_en_u ? >>1$data_wr_l:
                          !$is_brl ? $acc:
                          $pc;
          $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
