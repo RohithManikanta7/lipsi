@@ -305,7 +305,7 @@ endmodule
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
-         
+         $wr_en = $reset_uart ? $wr_en_l : $wr_en_u;
          $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
          $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address[3:0];
          //uart
@@ -351,10 +351,10 @@ endmodule
                            
          
          $instr_wr_en = $take_data && $rx_done && $prog;
-         $wr_en = $take_data && $rx_done && !$prog;
+         $wr_en_l = $take_data && $rx_done && !$prog;
          $imem_wr_addr[7:0] = $address;//$address;
-         $data_wr_u[7:0] = $wr_en? $data : >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $data : >>1$instr_wr;
+         $data_wr_u[7:0] = $wr_en_l? $data : >>1$data_wr_u;
+         $instr_wr[7:0] = $instr_wr_en_l? $data : >>1$instr_wr;
          
          
          
@@ -419,7 +419,7 @@ endmodule
                     >>1$dptr;
          
          $rd_en = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
-         $wr_en = $is_st || >>1$is_st_ind || $is_brl;
+         $wr_en_u = $is_st || >>1$is_st_ind || $is_brl;
          $op[7:0] = >>1$is_ALU_imm
                        ? $instr :
                     $is_ALU_reg
@@ -461,8 +461,7 @@ endmodule
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
          $idata_wr_addr_l[3:0] = $dptr;
-         //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
-         $data_wr_l[7:0] = !$wr_en ? >>1$data_wr_l:
+         $data_wr_l[7:0] = !$wr_en_u ? >>1$data_wr_l:
                          !$is_brl ? $acc:
                          $pc;
          $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
