@@ -351,7 +351,7 @@ endmodule
                           ? 1'b1:
                        $is_enter
                           ? 1'b1:
-                       >>1$rx_done
+                       >>1$rx_done || >>2$rx_done
                           ? 1'b0:
                           >>1$first_digit;
          $first_digit_u = $first_digit && $rx_done;
