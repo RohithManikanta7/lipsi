@@ -359,7 +359,7 @@ endmodule
                        >>1$rx_done || >>2$rx_done
                           ? 1'b0:
                           >>1$first_digit;
-         $value[7:0] = $take_data ? $data[7:0] : $instr[7:0];
+         $value[7:0] = $take_data ? $data_rd[7:0] : $instr_mem[7:0];
          $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit && $rx_done)
                            ? {($data_u[3:0] - 4'h7) , $value[3:0]}:
                         ($data_u >= 8'h41 && $data_u <= 8'h46 && !$first_digit && $rx_done)
