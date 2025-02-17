@@ -372,7 +372,7 @@ endmodule
                            ? {$data_u[3:0],$value[3:0]}:
                         $rx_done
                            ? {$value[7:4],$data_u[3:0]}:
-                           $value[7:0];
+                           >>1$value_u[7:0];
          $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit && $rx_done)
                            ? {($address[3:0] - 4'h7) , 4'h0}:
                         ($address >= 8'h41 && $address <= 8'h46 && !$first_digit && $rx_done)
