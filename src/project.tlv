@@ -89,7 +89,7 @@
          $prog_select = !*ui_in[7];
          /////change needed
          $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$pc[3:0];
-         $instr[7:0] = $inst_mem;
+         $instr[7:0] = $instr_mem;
          $idata_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$dptr[3:0];
          $data[7:0] = $data_rd;
          $rd_en = /top/fpga_pins/fpga|lipsi$rd_en;
