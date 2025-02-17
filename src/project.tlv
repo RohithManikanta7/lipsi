@@ -37,7 +37,7 @@
    @_stage
       \SV_plus
          // The program in an instruction memory.
-         reg [7:0] instrs [15:0], datam[15:0];
+         reg [7:0] instrs [16:0], datam[16:0];
          initial begin
              instrs[0] = 8'h70; // Custom 8-bit data for instruction 0
              instrs[1] = 8'h01; // Custom 8-bit data for instruction 1
@@ -65,227 +65,6 @@
          always@(posedge clk)
             if($wr_en)
                datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
-         always@(posedge clk)
-            if($instr_wr_en)
-               instrs\[$imem_wr_addr[3:0]\] <= $instr_wr[7:0];
-
-\SV
-module uart_tx 
-    #(parameter int FREQUENCY = 10000000, parameter int BAUD_RATE = 9600)
-    (
-        input logic clk,
-        input logic reset,
-        input logic tx_dv,
-        input logic [7:0] tx_byte, 
-        output logic tx_active,
-        output logic tx_serial,
-        output logic tx_done
-    );
-
-    typedef enum logic [2:0] {
-        s_IDLE          = 3'b000,
-        s_TX_START_BIT  = 3'b001,
-        s_TX_DATA_BITS  = 3'b010,
-        s_TX_STOP_BIT   = 3'b011,
-        s_CLEANUP       = 3'b100
-    } state_t;
-
-    localparam int CLKS_PER_BIT = FREQUENCY /  BAUD_RATE;
-
-    state_t r_SM_Main = s_IDLE;
-    logic [7:0] r_Clock_Count = 0;
-    logic [2:0] r_Bit_Index = 0;
-    logic [7:0] r_Tx_Data = 0;
-    logic r_Tx_Done = 0;
-    logic r_Tx_Active = 0;
-
-    always_ff @(posedge clk or posedge reset) begin
-        if (reset) begin
-            r_SM_Main <= s_IDLE;
-            r_Clock_Count <= 0;
-            r_Bit_Index <= 0;
-            r_Tx_Data <= 0;
-            r_Tx_Done <= 0;
-            r_Tx_Active <= 0;
-            tx_serial <= 1;
-        end else begin
-            case (r_SM_Main)
-                s_IDLE: begin
-                    tx_serial <= 1; // Line idle state
-                    r_Tx_Done <= 0;
-                    r_Clock_Count <= 0;
-                    r_Bit_Index <= 0;
-                    
-                    if (tx_dv) begin
-                        r_Tx_Active <= 1;
-                        r_Tx_Data <= tx_byte;
-                        r_SM_Main <= s_TX_START_BIT;
-                    end else begin
-                        r_SM_Main <= s_IDLE;
-                    end
-                end
-
-                s_TX_START_BIT: begin
-                    tx_serial <= 0; // Start bit
-                    if (r_Clock_Count < CLKS_PER_BIT - 1) begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end else begin
-                        r_Clock_Count <= 0;
-                        r_SM_Main <= s_TX_DATA_BITS;
-                    end
-                end
-
-                s_TX_DATA_BITS: begin
-                    tx_serial <= r_Tx_Data[r_Bit_Index];
-                    if (r_Clock_Count < CLKS_PER_BIT - 1) begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end else begin
-                        r_Clock_Count <= 0;
-                        if (r_Bit_Index < 7) begin
-                            r_Bit_Index <= r_Bit_Index + 1;
-                        end else begin
-                            r_Bit_Index <= 0;
-                            r_SM_Main <= s_TX_STOP_BIT;
-                        end
-                    end
-                end
-
-                s_TX_STOP_BIT: begin
-                    tx_serial <= 1; // Stop bit
-                    if (r_Clock_Count < CLKS_PER_BIT - 1) begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end else begin
-                        r_Tx_Done <= 1;
-                        r_Clock_Count <= 0;
-                        r_Tx_Active <= 0;
-                        r_SM_Main <= s_CLEANUP;
-                    end
-                end
-
-                s_CLEANUP: begin
-                    r_Tx_Done <= 1;
-                    r_SM_Main <= s_IDLE;
-                end
-
-                default: r_SM_Main <= s_IDLE;
-            endcase
-        end
-    end
-
-    assign tx_active = r_Tx_Active;
-    assign tx_done = r_Tx_Done;
-
-endmodule
-
-module uart_rx 
-    #(parameter int FREQUENCY = 20_000_000, parameter int BAUD_RATE = 9600)
-    (
-        input logic clk,
-        input logic rx_serial,          // input serial data
-        input logic reset,
-        output logic rx_done,           // asserts when reception is done
-        output logic [7:0] rx_byte      // received byte
-    );
-
-    localparam int CLKS_PER_BIT = FREQUENCY / BAUD_RATE;
-
-    typedef enum logic [2:0] {
-        s_IDLE          = 3'b000,
-        s_RX_START_BIT  = 3'b001,
-        s_RX_DATA_BITS  = 3'b010,
-        s_RX_STOP_BIT   = 3'b011,
-        s_CLEANUP       = 3'b100
-    } state_t;
-
-    state_t r_SM_Main = s_IDLE;
-
-    logic r_Rx_Data_R = 1'b1;
-    logic r_Rx_Data = 1'b1;
-
-    int unsigned r_Clock_Count = 0;
-    int unsigned r_Bit_Index = 0; // 8 bits total
-    logic [7:0] r_Rx_Byte = 8'h00;
-    logic r_Rx_DV = 1'b0;
-
-    // Purpose: Double-register the incoming data to avoid metastability
-    always_ff @(posedge clk) begin
-        r_Rx_Data_R <= rx_serial;
-        r_Rx_Data   <= r_Rx_Data_R;
-    end
-
-    // RX state machine
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            r_SM_Main      <= s_IDLE;
-            r_Rx_DV        <= 1'b0;
-            r_Clock_Count  <= 0;
-            r_Bit_Index    <= 0;
-            r_Rx_Byte      <= 8'h00;
-        end 
-        
-        else begin
-            case (r_SM_Main)
-                s_IDLE: begin
-                    r_Rx_DV       <= 1'b0;
-                    r_Clock_Count <= 0;
-                    r_Bit_Index   <= 0;
-
-                    if (r_Rx_Data == 1'b0) // Start bit detected
-                        r_SM_Main <= s_RX_START_BIT;
-                end
-
-                s_RX_START_BIT: begin
-                    if (r_Clock_Count == (CLKS_PER_BIT - 1) / 2) begin
-                        if (r_Rx_Data == 1'b0) begin
-                            r_Clock_Count <= 0;  // Reset counter, found the middle
-                            r_SM_Main     <= s_RX_DATA_BITS;
-                        end else begin
-                            r_SM_Main <= s_IDLE;
-                        end
-                    end else begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end
-                end
-
-                s_RX_DATA_BITS: begin
-                    if (r_Clock_Count < CLKS_PER_BIT - 1) begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end else begin
-                        r_Clock_Count <= 0;
-                        r_Rx_Byte[r_Bit_Index] <= r_Rx_Data;
-
-                        if (r_Bit_Index < 7) begin
-                            r_Bit_Index <= r_Bit_Index + 1;
-                        end else begin
-                            r_Bit_Index <= 0;
-                            r_SM_Main   <= s_RX_STOP_BIT;
-                        end
-                    end
-                end
-
-                s_RX_STOP_BIT: begin
-                    if (r_Clock_Count < CLKS_PER_BIT - 1) begin
-                        r_Clock_Count <= r_Clock_Count + 1;
-                    end else begin
-                        r_Rx_DV       <= 1'b1;
-                        r_Clock_Count <= 0;
-                        r_SM_Main     <= s_CLEANUP;
-                    end
-                end
-
-                s_CLEANUP: begin
-                    r_SM_Main <= s_IDLE;
-                    r_Rx_DV   <= 1'b0;
-                end
-
-                default: r_SM_Main <= s_IDLE;
-            endcase
-        end
-    end
-
-    assign rx_done = r_Rx_DV;
-    assign rx_byte = r_Rx_Byte;
-endmodule
 
 \SV
    // Include Tiny Tapeout Lab.
@@ -305,123 +84,27 @@ endmodule
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |lipsi
       @1
-         $wr_en = $reset_uart ? $wr_en_l : $wr_en_u;
-         $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
-         $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address_u[3:0];
-         
-         $rd_en = $reset_uart ? $rd_en_l : $rd_en_u;
-         $imem_rd_addr[3:0] = $reset_uart ? $imem_rd_addr_l : $address[3:0];
-         $idata_rd_addr[3:0] = $reset_uart ? $idata_rd_addr_l: $address[3:0];
-         //uart
-         $rx_serial = *ui_in[6];   // pmod connector's TxD port
-         $reset_uart = *reset || $run;
-         // uart receiver can be integrated the following way
-         \SV_plus
-            uart_rx #(20000000,115200) uart_rx_1(.clk(*clk),
-                                            .reset($reset_uart),
-                                            .rx_serial($rx_serial),
-                                            .rx_done($$rx_done),
-                                            .rx_byte($$rx_byte[7:0])
-                                            );
-         $is_p = (($rx_byte==8'h50) || ($rx_byte==8'h70)) && $rx_done;
-         $is_m = (($rx_byte==8'h4D) || ($rx_byte==8'h6D)) && $rx_done;
-         $prog = !$reset_uart && $is_p
-                     ?1'b1:
-                  !$reset_uart && $is_m
-                     ?1'b0:
-                  >>1$prog;
-         $rd_en_u = $take_data && !$reset_uart;
-         $is_enter = $rx_byte==8'h0d && $rx_done;
-         $is_space = $rx_byte==8'h20 && $rx_done;
-         $take_address = >>1$is_enter
-                           ? 1'b1:
-                        $is_space
-                           ?1'b0:
-                        >>1$take_address;
-         $take_data = >>1$is_space
-                           ? 1'b1:
-                        $is_enter
-                           ?1'b0:
-                        >>1$take_data;
-         
-         
-         $address[7:0] = $take_address && $rx_done
-                        ? $rx_byte:
-                           >>1$address;
-         
-         $data_u[7:0] = $take_data && $rx_done
-                        ? $rx_byte:
-                           >>1$data_u;
-         $first_digit = $is_space
-                          ? 1'b1:
-                       $is_enter
-                          ? 1'b1:
-                       >>1$rx_done || >>2$rx_done
-                          ? 1'b0:
-                          >>1$first_digit;
-         $value[7:0] = $take_data ? $data_rd[7:0] : $instr_mem[7:0];
-         $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit && $rx_done)
-                           ? {($data_u[3:0] - 4'h7) , $value[3:0]}:
-                        ($data_u >= 8'h41 && $data_u <= 8'h46 && !$first_digit && $rx_done)
-                           ? {$value[7:4],$data_u[3:0] - 4'h7}:
-                        ($data_u >= 8'h61 && $data_u <= 8'h66 && !$first_digit && $rx_done)
-                           ? {$value[7:4],$data_u[3:0] - 4'h7}:
-                        ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit && $rx_done)
-                           ? {$data_u[3:0] - 4'h7,$value[3:0]}:
-                        ($first_digit && $rx_done)
-                           ? {$data_u[3:0],$value[3:0]}:
-                        $rx_done
-                           ? {$value[7:4],$data_u[3:0]}:
-                           >>1$value_u[7:0];
-         $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit && $rx_done)
-                           ? {($address[3:0] - 4'h7) , 4'h0}:
-                        ($address >= 8'h41 && $address <= 8'h46 && !$first_digit && $rx_done)
-                           ? {>>1$address_u[7:4],($address[3:0] - 4'h7)}:
-                        ($address >= 8'h61 && $address <= 8'h69 && $first_digit && $rx_done)
-                           ? {$address[3:0] - 4'h7,4'h0}:
-                        ($address >= 8'h61 && $address <= 8'h69 && !$first_digit && $rx_done)
-                           ? {>>1$address_u[7:4],$address[3:0] - 4'h7}:
-                        $first_digit && $rx_done
-                           ? {$address[3:0],4'h0}:
-                        $rx_done
-                           ? {>>1$address_u[7:4],$address[3:0]}:
-                           >>1$address_u[7:0];
-         
-         
-         $instr_wr_en = $take_data && $rx_done && $prog;
-         $wr_en_u = $take_data && $rx_done && !$prog;
-         $imem_wr_addr[7:0] = $address_u;//$address;
-         $data_wr_u[7:0] = $wr_en_u && $take_data
-                           ? $value_u :
-                           >>1$data_wr_u;
-         $instr_wr[7:0] = $instr_wr_en? $value_u : >>1$instr_wr;
-         
-         
-         
-         
-         
-         //lipsi
-         $run = !*ui_in[7];
+         $run = 1'b1;//!*ui_in[7];
          $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
-         $imem_rd_addr_l[3:0] = $pc[3:0];
+         $imem_rd_addr[3:0] = $pc[3:0];
          $instr[7:0] = $instr_mem;
-         $idata_rd_addr_l[3:0] = $dptr[3:0];
+         $idata_rd_addr[3:0] = $dptr[3:0];
          $data[7:0] = $data_rd;
          
          //-----------------------PC - LOGIC -------------------------
-         $pc[3:0] = $reset_lipsi || >>1$reset_lipsi
-                       ? 4'b0:
+         $pc[7:0] = $reset_lipsi || >>1$reset_lipsi
+                       ? 8'b0:
                     >>1$exit || >>1$is_ld_ind || >>1$is_st_ind 
                        ? >>1$pc:
                     >>2$is_br || (>>2$is_brz && >>1$z) || (>>2$is_brnz && !>>1$z)
-                       ? >>1$instr[3:0]:
+                       ? >>1$instr:
                     >>1$is_brl
-                       ? >>1$acc[3:0]:
+                       ? >>1$acc:
                     >>1$is_ret
-                       ? >>1$data[3:0]+1'b1:
-                     >>1$pc + 4'b1;
+                       ? >>1$data+1'b1:
+                     >>1$pc + 8'b1;
          //---------------------DECODE - LOGIC -----------------------
          $valid = (1'b1^>>1$is_2cyc) && !$reset_lipsi;
          
@@ -458,8 +141,8 @@ endmodule
                     ? >>1$data:
                     >>1$dptr;
          
-         $rd_en_l = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
-         $wr_en_l = $is_st || >>1$is_st_ind || $is_brl;
+         $rd_en = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
+         $wr_en = $is_st || >>1$is_st_ind || $is_brl;
          $op[7:0] = >>1$is_ALU_imm
                        ? $instr :
                     $is_ALU_reg
@@ -500,23 +183,12 @@ endmodule
          
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
-         $idata_wr_addr_l[3:0] = $dptr[3:0];
-         $data_wr_l[7:0] = !$wr_en_l 
-                            ? >>1$data_wr_l:
-                         !$is_brl 
-                            ? $acc[7:0]:
-                            $pc;
-         $digit[3:0] = !$reset_uart && ($take_data) && *ui_in[0]
-                        ? $value_u[7:4]:
-                     !$reset_uart && ($take_data)
-                        ? $value_u[3:0]:
-                     !$reset_uart && ($take_address) && *ui_in[0]
-                        ? $address_u[7:4]:
-                     !$reset_uart && ($take_address)
-                        ? $address_u[3:0]:
-                     *ui_in[0]
-                        ? $acc[7:4] :
-                        $acc[3:0];
+         $idata_wr_addr[7:0] = $dptr;
+         //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
+         $data_wr[7:0] = !$wr_en ? >>1$data_wr:
+                         !$is_brl ? $acc:
+                         $pc;
+         $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
          *uo_out[7:0] = $digit[3:0] == 4'b0000
              ? 8'b00111111 :
              $digit[3:0] == 4'b0001
