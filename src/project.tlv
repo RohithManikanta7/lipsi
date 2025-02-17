@@ -308,6 +308,10 @@ endmodule
          $wr_en = $reset_uart ? $wr_en_l : $wr_en_u;
          $data_wr[7:0] = $reset_uart ? $data_wr_l : $data_wr_u;
          $idata_wr_addr[3:0] = $reset_uart ? $idata_wr_addr_l : $address_u[3:0];
+         
+         $rd_en = $reset_uart ? $rd_en_l : $rd_en_u;
+         $imem_rd_addr[3:0] = $reset_uart ? $imem_rd_addr_l : $address[3:0];
+         $idata_rd_addr[3:0] = $reset_uart ? $idata_rd_addr_l: $address[3:0];
          //uart
          $rx_serial = *ui_in[6];   // pmod connector's TxD port
          $reset_uart = *reset || $run;
@@ -326,6 +330,7 @@ endmodule
                   !$reset_uart && $is_m
                      ?1'b0:
                   >>1$prog;
+         $rd_en_u = $take_data && !$reset_uart;
          $is_enter = $rx_byte==8'h0d && $rx_done;
          $is_space = $rx_byte==8'h20 && $rx_done;
          $take_address = >>1$is_enter
@@ -354,19 +359,20 @@ endmodule
                        >>1$rx_done || >>2$rx_done
                           ? 1'b0:
                           >>1$first_digit;
+         $value[7:0] = $take_data ? $data[7:0] : $instr[7:0];
          $value_u[7:0] = ($data_u >= 8'h41 && $data_u <= 8'h46 && $first_digit && $rx_done)
-                           ? {($data_u[3:0] - 4'h7) , 4'h0}:
+                           ? {($data_u[3:0] - 4'h7) , $value[3:0]}:
                         ($data_u >= 8'h41 && $data_u <= 8'h46 && !$first_digit && $rx_done)
-                           ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
+                           ? {$value[7:4],$data_u[3:0] - 4'h7}:
                         ($data_u >= 8'h61 && $data_u <= 8'h66 && !$first_digit && $rx_done)
-                           ? {>>1$value_u[7:4],$data_u[3:0] - 4'h7}:
+                           ? {$value[7:4],$data_u[3:0] - 4'h7}:
                         ($data_u >= 8'h61 && $data_u <= 8'h66 && $first_digit && $rx_done)
-                           ? {$data_u[3:0] - 4'h7,4'h0}:
+                           ? {$data_u[3:0] - 4'h7,$value[3:0]}:
                         ($first_digit && $rx_done)
-                           ? {$data_u[3:0],4'h0}:
+                           ? {$data_u[3:0],$value[3:0]}:
                         $rx_done
-                           ? {>>1$value_u[7:4],$data_u[3:0]}:
-                           >>1$value_u[7:0];
+                           ? {$value[7:4],$data_u[3:0]}:
+                           $value[7:0];
          $address_u[7:0] = ($address >= 8'h41 && $address <= 8'h46 && $first_digit && $rx_done)
                            ? {($address[3:0] - 4'h7) , 4'h0}:
                         ($address >= 8'h41 && $address <= 8'h46 && !$first_digit && $rx_done)
@@ -399,9 +405,9 @@ endmodule
          $reset_lipsi = *reset || !$run;
          
          //---------------------MEMORY - INITIALIZATION---------------
-         $imem_rd_addr[3:0] = $pc[3:0];
+         $imem_rd_addr_l[3:0] = $pc[3:0];
          $instr[7:0] = $instr_mem;
-         $idata_rd_addr[3:0] = $dptr[3:0];
+         $idata_rd_addr_l[3:0] = $dptr[3:0];
          $data[7:0] = $data_rd;
          
          //-----------------------PC - LOGIC -------------------------
@@ -452,7 +458,7 @@ endmodule
                     ? >>1$data:
                     >>1$dptr;
          
-         $rd_en = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
+         $rd_en_l = $is_ALU_reg || $is_ld_ind || >>1$is_ld_ind || $is_st_ind || $is_ret;
          $wr_en_l = $is_st || >>1$is_st_ind || $is_brl;
          $op[7:0] = >>1$is_ALU_imm
                        ? $instr :
