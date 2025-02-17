@@ -88,24 +88,24 @@
       @1
          $prog_select = 1'b0;
          /////change needed
-         $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$pc[3:0];
+         $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi>>0$pc[3:0];
          $instr[7:0] = $instr_mem;
-         $idata_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$dptr[3:0];
+         $idata_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi>>0$dptr[3:0];
          $data[7:0] = $data_rd;
-         $rd_en = /top/fpga_pins/fpga|lipsi$rd_en;
-         $wr_en = /top/fpga_pins/fpga|lipsi$wr_en;
-         $idata_wr_addr[7:0] = /top/fpga_pins/fpga|lipsi$dptr;
-         $data_wr[7:0] = /top/fpga_pins/fpga|lipsi$data_wr;
+         $rd_en = /top/fpga_pins/fpga|lipsi>>0$rd_en;
+         $wr_en = /top/fpga_pins/fpga|lipsi>>0$wr_en;
+         $idata_wr_addr[7:0] = /top/fpga_pins/fpga|lipsi>>0$dptr;
+         $data_wr[7:0] = /top/fpga_pins/fpga|lipsi>>0$data_wr;
       m5+imem(@1)
    
    |lipsi
       @1
          
-         $reset_lipsi = /top/fpga_pins/fpga|fsm$prog_select;
+         $reset_lipsi = /top/fpga_pins/fpga|fsm>>0$prog_select;
          //---------------------MEMORY - INITIALIZATION---------------
          
-         $instr[7:0] = /top/fpga_pins/fpga|fsm$instr;
-         $data[7:0] = /top/fpga_pins/fpga|fsm$data;
+         $instr[7:0] = /top/fpga_pins/fpga|fsm>>0$instr;
+         $data[7:0] = /top/fpga_pins/fpga|fsm>>0$data;
          
          //-----------------------PC - LOGIC -------------------------
          $pc[7:0] = $reset_lipsi || >>1$reset_lipsi
