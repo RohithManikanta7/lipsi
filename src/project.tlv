@@ -66,6 +66,8 @@
             if($wr_en)
                datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
 
+
+
 \SV
    // Include Tiny Tapeout Lab.
    m4_include_lib(['https:/']['/raw.githubusercontent.com/os-fpga/Virtual-FPGA-Lab/5744600215af09224b7235479be84c30c6e50cb7/tlv_lib/tiny_tapeout_lib.tlv'])
@@ -82,16 +84,28 @@
    // ==================
    
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
+   |fsm
+      @1
+         $prog_select = !*ui_in[7];
+         /////change needed
+         $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$pc[3:0];
+         $instr[7:0] = $inst_mem;
+         $idata_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$dptr[3:0];
+         $data[7:0] = $data_rd;
+         $rd_en = /top/fpga_pins/fpga|lipsi$rd_en;
+         $wr_en = /top/fpga_pins/fpga|lipsi$wr_en;
+         $idata_wr_addr[7:0] = /top/fpga_pins/fpga|lipsi$dptr;
+         $data_wr[7:0] = /top/fpga_pins/fpga|lipsi$data_wr;
+      m5+imem(@1)
+   
    |lipsi
       @1
-         $run = 1'b1;//!*ui_in[7];
-         $reset_lipsi = *reset || !$run;
          
+         $reset_lipsi = /top/fpga_pins/fpga|fsm$prog_select;
          //---------------------MEMORY - INITIALIZATION---------------
-         $imem_rd_addr[3:0] = $pc[3:0];
-         $instr[7:0] = $instr_mem;
-         $idata_rd_addr[3:0] = $dptr[3:0];
-         $data[7:0] = $data_rd;
+         
+         $instr[7:0] = /top/fpga_pins/fpga|fsm$instr;
+         $data[7:0] = /top/fpga_pins/fpga|fsm$data;
          
          //-----------------------PC - LOGIC -------------------------
          $pc[7:0] = $reset_lipsi || >>1$reset_lipsi
@@ -183,7 +197,6 @@
          
          /* verilator lint_on WIDTHEXPAND */
          $z = $acc == 8'b0;
-         $idata_wr_addr[7:0] = $dptr;
          //$data_wr[7:0] = $wr_en? $acc : >>1$data_wr;
          $data_wr[7:0] = !$wr_en ? >>1$data_wr:
                          !$is_brl ? $acc:
@@ -221,7 +234,7 @@
              ? 8'b01111001 : 8'b01110001 ;
          
          
-      m5+imem(@1)
+      //m5+imem(@1)
    
    
    
