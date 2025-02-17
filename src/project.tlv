@@ -45,8 +45,8 @@
              instrs[3] = 8'h72;
              instrs[4] = 8'h13;
              instrs[5] = 8'h82;
-             instrs[6] = 8'hD3;
-             instrs[7] = 8'h00;
+             instrs[6] = 8'hC7;
+             instrs[7] = 8'h35;
              instrs[8] = 8'hFF;
              instrs[9] = 8'hFF; // Custom data for instruction 10
              ///data values
@@ -57,15 +57,15 @@
              datam[4] =8'h09;
              datam[8] =8'h05;
          end
-      
-      $instr_mem[7:0] = instrs\[$imem_rd_addr\];
+      /* verilator lint_off WIDTHEXPAND */
+      $instr_mem[7:0] = instrs\[$imem_rd_addr[3:0]\];
       ?$rd_en
-         $data_rd[7:0] = datam\[$idata_rd_addr\];
+         $data_rd[7:0] = datam\[$idata_rd_addr[3:0]\];
       \SV_plus
          always@(posedge clk)
             if($wr_en)
                datam\[$idata_wr_addr[3:0]\] <= $data_wr[7:0];
-
+      /* verilator lint_off WIDTHEXPAND */
 
 
 \SV
@@ -86,7 +86,7 @@
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |fsm
       @1
-         $prog_select = !*ui_in[7];
+         $prog_select = 1'b0;
          /////change needed
          $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi$pc[3:0];
          $instr[7:0] = $instr_mem;
