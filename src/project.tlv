@@ -384,11 +384,11 @@ endmodule
                                             .rx_byte($$rx_byte[7:0])
                                             );
          $first_byte = $reset ? 1'b1 : >>1$first_byte + $rx_done;
-         $data[7:0] = ($rx_byte >= 8'h41 && $rx_byte <= 8'h46 && $rx_byte >= 8'h61 && $rx_byte <= 8'h66) && $rx_done && >>1$first_byte
+         $data[7:0] = (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66))&& $rx_done && >>1$first_byte
                         ? {($rx_byte[3:0] - 4'h7) , 4'b0}:
                      $rx_done && >>1$first_byte
                         ?{$rx_byte[3:0],4'b0}:
-                     ($rx_byte >= 8'h41 && $rx_byte <= 8'h46 && $rx_byte >= 8'h61 && $rx_byte <= 8'h66) && $rx_done
+                     (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66)) && $rx_done
                         ? {>>1$data[7:4],($rx_byte[3:0] - 4'h7)}:
                      $rx_done
                         ?{>>1$data[7:4],$rx_byte[3:0]}:
