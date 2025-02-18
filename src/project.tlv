@@ -322,6 +322,37 @@ endmodule
          $instr_wr[7:0] = /top/fpga_pins/fpga|uart>>0$instr_wr[7:0];
          $imem_wr_addr[3:0] = /top/fpga_pins/fpga|uart>>0$imem_wr_addr[3:0];
          $instr_wr_en = /top/fpga_pins/fpga|uart>>0$instr_wr_en;
+         $digit[3:0] = /top/fpga_pins/fpga|lipsi>>0$reset ? /top/fpga_pins/fpga|uart>>0$digit : /top/fpga_pins/fpga|lipsi>>0$digit;
+         *uo_out[7:0] = $digit[3:0] == 4'b0000
+             ? 8'b00111111 :
+             $digit[3:0] == 4'b0001
+             ? 8'b00000110 :
+             $digit[3:0] == 4'b0010
+             ? 8'b01011011 :
+             $digit[3:0] == 4'b0011
+             ? 8'b01001111 :
+             $digit[3:0] == 4'b0100
+             ? 8'b01100110 :
+             $digit[3:0] == 4'b0101
+             ? 8'b01101101 :
+             $digit[3:0] == 4'b0110
+             ? 8'b01111101 :
+             $digit[3:0] == 4'b0111
+             ? 8'b00000111 :
+             $digit[3:0] == 4'b1000
+             ? 8'b01111111 :
+             $digit[3:0] == 4'b1001
+             ? 8'b01101111 :
+             $digit[3:0] == 4'b1010
+             ? 8'b01110111 :
+             $digit[3:0] == 4'b1011
+             ? 8'b01111100 :
+             $digit[3:0] == 4'b1100
+             ? 8'b00111001 :
+             $digit[3:0] == 4'b1101
+             ? 8'b01011110 :
+             $digit[3:0] == 4'b1110
+             ? 8'b01111001 : 8'b01110001 ;
       m5+imem(@1)
    
    |uart
@@ -369,7 +400,8 @@ endmodule
          $wr_en = $rx_done && !>>1$first_byte && !$reset && !$prog_mem;
          $idata_wr_addr[3:0] = >>1$dptr[3:0];
          $data_wr[7:0] = $data;
-   
+         $digit[3:0] = *ui_in[0] ? $data[7:0]:$data[3:0];
+  
    |lipsi
       @1
          
@@ -476,36 +508,7 @@ endmodule
                          !$is_brl ? $acc:
                          $pc;
          $digit[3:0] = *ui_in[0]? $acc[7:4] : $acc[3:0];
-         *uo_out[7:0] = $digit[3:0] == 4'b0000
-             ? 8'b00111111 :
-             $digit[3:0] == 4'b0001
-             ? 8'b00000110 :
-             $digit[3:0] == 4'b0010
-             ? 8'b01011011 :
-             $digit[3:0] == 4'b0011
-             ? 8'b01001111 :
-             $digit[3:0] == 4'b0100
-             ? 8'b01100110 :
-             $digit[3:0] == 4'b0101
-             ? 8'b01101101 :
-             $digit[3:0] == 4'b0110
-             ? 8'b01111101 :
-             $digit[3:0] == 4'b0111
-             ? 8'b00000111 :
-             $digit[3:0] == 4'b1000
-             ? 8'b01111111 :
-             $digit[3:0] == 4'b1001
-             ? 8'b01101111 :
-             $digit[3:0] == 4'b1010
-             ? 8'b01110111 :
-             $digit[3:0] == 4'b1011
-             ? 8'b01111100 :
-             $digit[3:0] == 4'b1100
-             ? 8'b00111001 :
-             $digit[3:0] == 4'b1101
-             ? 8'b01011110 :
-             $digit[3:0] == 4'b1110
-             ? 8'b01111001 : 8'b01110001 ;
+         
          
          
       //m5+imem(@1)
