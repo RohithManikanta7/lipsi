@@ -400,7 +400,7 @@ endmodule
          $wr_en = $rx_done && !>>1$first_byte && !$reset && !$prog_mem;
          $idata_wr_addr[3:0] = >>1$dptr[3:0];
          $data_wr[7:0] = $data;
-         $digit[3:0] = *ui_in[0] ? $data[7:0]:$data[3:0];
+         $digit[3:0] = *ui_in[0] ? $data[3:0]:$data[3:0];
   
    |lipsi
       @1
