@@ -315,9 +315,9 @@ endmodule
          $rd_en = /top/fpga_pins/fpga|lipsi>>0$rd_en;
          
          
-         $wr_en = /top/fpga_pins/fpga|lipsi$reset ? /top/fpga_pins/fpga|uart>>0$wr_en : /top/fpga_pins/fpga|lipsi>>0$wr_en;
-         $idata_wr_addr[3:0] = /top/fpga_pins/fpga|lipsi$reset ? /top/fpga_pins/fpga|uart>>0$idata_wr_addr[3:0] :/top/fpga_pins/fpga|lipsi>>0$dptr[3:0];
-         $data_wr[7:0] = /top/fpga_pins/fpga|lipsi$reset ? /top/fpga_pins/fpga|uart>>0$data_wr : /top/fpga_pins/fpga|lipsi>>0$data_wr;
+         $wr_en = /top/fpga_pins/fpga|lipsi>>0$reset ? /top/fpga_pins/fpga|uart>>0$wr_en : /top/fpga_pins/fpga|lipsi>>0$wr_en;
+         $idata_wr_addr[3:0] = /top/fpga_pins/fpga|lipsi>>0$reset ? /top/fpga_pins/fpga|uart>>0$idata_wr_addr[3:0] :/top/fpga_pins/fpga|lipsi>>0$dptr[3:0];
+         $data_wr[7:0] = /top/fpga_pins/fpga|lipsi>>0reset ? /top/fpga_pins/fpga|uart>>0$data_wr : /top/fpga_pins/fpga|lipsi>>0$data_wr;
          
          $instr_wr[7:0] = /top/fpga_pins/fpga|uart>>0$instr_wr[7:0];
          $imem_wr_addr[3:0] = /top/fpga_pins/fpga|uart>>0$imem_wr_addr[3:0];
