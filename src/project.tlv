@@ -926,14 +926,14 @@ endmodule
                         .low($low),
                         .hig($hig),
                         .med($med),
-                        .heating_op($heat),
-                        .spinning_op($spin),
-                        .pouring_op($pour),
-                        .waiting_op($wait),
-                        .prog_op($prog),
-                        .level_op($level),
-                        .temp_op($temp),
-                        .dura_op($dura));
+                        .heating_op($$heat),
+                        .spinning_op($$spin),
+                        .pouring_op($$pour),
+                        .waiting_op($$wait),
+                        .prog_op($$prog),
+                        .level_op($$level),
+                        .temp_op($$temp),
+                        .dura_op($$dura));
          $out[7:0] = {$heat,$spin,$pour,$wait,$prog,$level,$temp,$dura};
    
    |uart
