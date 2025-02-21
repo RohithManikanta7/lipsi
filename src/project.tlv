@@ -934,7 +934,7 @@ endmodule
                         .level_op($level),
                         .temp_op($temp),
                         .dura_op($dura));
-         $out[7:0] = {$heat,$spin,$pour,$wait,$prog,$level,$level,$temp,$dura};
+         $out[7:0] = {$heat,$spin,$pour,$wait,$prog,$level,$temp,$dura};
    
    |uart
       @1
