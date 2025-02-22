@@ -818,9 +818,9 @@ module Controller (
                    if((counter1 != 12'b0)  && (counter2 != 32'b0))
                        counter2 <= counter2 - 32'b1;
                    else if((counter1 != 12'b0) && (counter2 == 32'b0))
-                       counter2 <= 32'h00ffffff;//32'd8; //32'hffffffff;
+                       counter2 <= 32'h003fffff;//32'd8; //32'hffffffff;
                    else 
-                       counter2 <= 32'h00ffffff;//32'd8; //32'hffffffff;
+                       counter2 <= 32'h003fffff;//32'd8; //32'hffffffff;
 
                    //COUNTER TERMINATING CONDITIONS
 
@@ -971,6 +971,15 @@ endmodule
          
          $reset = !/top/fpga_pins/fpga|fsm>>0$prog_select || *reset ;
          
+         $is_hash = $rx_byte == 8'h23 && $rx_done;
+         $is_enter = $rx_byte == 8'h20 && $rx_done;
+         $comment = $reset || >>1$is_enter
+                     ? 1'b0:
+                  $is_hash || $is_enter
+                     ? 1'b1:
+                     >>1$comment;
+         $valid_rx_done = $rx_done && !$comment;
+         
          $rx_serial = *ui_in[6];   // pmod connector's TxD port
          
          $prog_mem = *ui_in[5];//0 means data 1 means instruction
@@ -983,20 +992,20 @@ endmodule
                                             .rx_byte($$rx_byte[7:0])
                                             );
          $first_byte = $reset ? 1'b1 : >>1$first_byte + $rx_done;
-         $data[7:0] = (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66))&& $rx_done && >>1$first_byte
+         $data[7:0] = (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66))&& $valid_rx_done && >>1$first_byte
                         ? {($rx_byte[3:0] - 4'h7) , 4'b0}:
-                     $rx_done && >>1$first_byte
+                     $valid_rx_done && >>1$first_byte
                         ?{$rx_byte[3:0],4'b0}:
-                     (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66)) && $rx_done
+                     (($rx_byte >= 8'h41 && $rx_byte <= 8'h46) || ($rx_byte >= 8'h61 && $rx_byte <= 8'h66)) && $valid_rx_done
                         ? {>>1$data[7:4],($rx_byte[3:0] - 4'h7)}:
-                     $rx_done
+                     $valid_rx_done
                         ?{>>1$data[7:4],$rx_byte[3:0]}:
                         >>1$data[7:0];
          
          $imem_wr_addr[3:0] = >>1$pc[3:0];
-         $instr_wr_en = $rx_done && !>>1$first_byte && !$reset && $prog_mem;
+         $instr_wr_en = $valid_rx_done && !>>1$first_byte && !$reset && $prog_mem;
          $instr_wr[7:0] = $data;
-         $wr_en = $rx_done && !>>1$first_byte && !$reset && !$prog_mem;
+         $wr_en = $valid_rx_done && !>>1$first_byte && !$reset && !$prog_mem;
          $idata_wr_addr[3:0] = >>1$dptr[3:0];
          $data_wr[7:0] = $data;
          $digit[3:0] = *ui_in[1] ? $data[7:4]:$data[3:0];
