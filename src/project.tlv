@@ -877,7 +877,7 @@ endmodule
       @1
          $wm_select = *ui_in[0] && *ui_in[7] ;
          $game_select = !*ui_in[0] && *ui_in[7];
-         $prog_select = *ui_in[7] && !*ui_in[0];// 0 means lipsi 1 means uart
+         $prog_select = !*ui_in[7] && *ui_in[0];// 0 means lipsi 1 means uart
          $lipsi_select = !*ui_in[0] && !*ui_in[7];
          
          $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi>>0$pc[3:0];
