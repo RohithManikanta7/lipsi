@@ -875,9 +875,10 @@ endmodule
    // Note that pipesignals assigned here can be found under /fpga_pins/fpga.
    |fsm
       @1
-         $wm_select = *ui_in[0] ;
-         $prog_select = *ui_in[7] && !$wm_select;// 0 means lipsi 1 means uart
-         $lipsi_select = !$wm_select && !$prog_select;
+         $wm_select = *ui_in[0] && *ui_in[7] ;
+         $game_select = *ui_in[0] && !*ui_in[7];
+         $prog_select = *ui_in[7] && !*ui_in[0];// 0 means lipsi 1 means uart
+         $lipsi_select = !*ui_in[0] && !*ui_in[7];
          
          $imem_rd_addr[3:0] = /top/fpga_pins/fpga|lipsi>>0$pc[3:0];
          $instr[7:0] = $instr_mem;
@@ -896,6 +897,8 @@ endmodule
          $digit[3:0] = /top/fpga_pins/fpga|lipsi>>0$reset ? /top/fpga_pins/fpga|uart>>0$digit : /top/fpga_pins/fpga|lipsi>>0$digit;
          *uo_out[7:0] = $wm_select
                ?/top/fpga_pins/fpga|controller>>0$out:
+            $game_select
+               ?/top/fpga_pins/fpga|game>>0$out:
             $digit[3:0] == 4'b0000
                ? 8'b00111111 :
             $digit[3:0] == 4'b0001
@@ -953,6 +956,95 @@ endmodule
                         .temp_op($$temp),
                         .dura_op($$dura));
          $out[7:0] = {$heat,$spin,$pour,$wait,$prog,$level,$temp,$dura};
+   
+   |game
+      @1
+         $reset = !/top/fpga_pins/fpga|fsm>>0$game_select || *reset ;
+         $count_speed4[18:0] = (>>1$reset || >>1$count_speed4 == 19'd500000 ) ? 19'b0 : >>1$count_speed4 +1 ;
+         $clk_pulse4 = >>1$reset ? 1'b0: $count_speed4 == 19'd500000 ? ~>>1$clk_pulse4 : >>1$clk_pulse4 ;
+         $count_speed3[19:0] = (>>1$reset || >>1$count_speed3 == 20'd900000 ) ? 20'b0 : >>1$count_speed3 +1 ;
+         $clk_pulse3 = >>1$reset ? 1'b0: $count_speed3 == 20'd900000 ? ~>>1$clk_pulse3 : >>1$clk_pulse3 ;
+         $count_speed2[20:0] = (>>1$reset || >>1$count_speed2 == 21'd1700000 ) ? 21'b0 : >>1$count_speed2 +1 ;
+         $clk_pulse2 = >>1$reset ? 1'b0: $count_speed2 == 21'd1700000 ? ~>>1$clk_pulse2 : >>1$clk_pulse2 ;
+         $count_speed1[23:0] = (>>1$reset || >>1$count_speed1 == 24'd2000000 ) ? 24'b0 : >>1$count_speed1 +1 ;
+         $clk_pulse1 = >>1$reset ? 1'b0: $count_speed1 == 24'd2000000 ? ~>>1$clk_pulse1 : >>1$clk_pulse1 ;
+             
+         $speed_level[1:0] = >>1$reset || (>>2$state == 2'b01 && >>3$state == 2'b10) ? 2'b0 :  
+               ($right_edge && $led_output == 8'h01) || ($left_edge  && $led_output == 8'h80)
+                  ? 2'd3
+               :  ($right_edge && $led_output == 8'h02) || ($left_edge  && $led_output == 8'h40)
+                  ? 2'd2
+               :  ($right_edge && $led_output == 8'h04) || ($left_edge  && $led_output == 8'h20)
+                  ? 2'd1
+               :  ($right_edge && $led_output == 8'h08) || ($left_edge  && $led_output == 8'h10)
+                  ? 2'd0
+                  //default
+                  : >>1$speed_level;
+         $clk_pulse = ($speed_level == 2'b11) ? $clk_pulse4 :
+                ($speed_level == 2'b10) ? $clk_pulse3 :
+                ($speed_level == 2'b01) ? $clk_pulse2 :
+                $clk_pulse1; // Default to slowest speed
+         $led_output[7:0] = (>>1$win == 2'b01 )
+                        ? (>>1$clk_pulse1) 
+                           ?8'b00001111
+                           :8'b0
+                      :>>1$win == 2'b10
+                        ? (>>1$clk_pulse1) 
+                           ?8'b11110000
+                           : 8'b0
+                     :(>>1$reset || (>>2$state == 2'b01 && >>3$state == 2'b10)  )
+                            ? 8'b00001000 :
+                   
+                      >>2$state == 2'b10 ? 
+                            >>3$score[7:0]
+                      :(!>>2$clk_pulse && >>1$clk_pulse) ?
+                          >>1$forward ? >>1$led_output[7:0] << 1 : >>1$led_output[7:0] >> 1 :
+                          >>1$led_output ;
+         $forward = >>1$reset || (>>2$state == 2'b01 && >>3$state == 2'b10) ? 1'b1 :  // forward is right to left when == 1'b1
+               ($right_edge  && $led_output <= 8'd8)
+                  ? 1'b1
+               :  ($left_edge  && $led_output > 8'd8)
+                  ? 1'b0
+                  //default
+                  : >>1$forward;
+         $state[1:0] = >>1$reset || $win != 2'b0 ? 2'b01 
+                 : (>>1$led_output == 8'b0 && >>1$state == 2'b01 ) ? //Score display
+                       2'b10
+                 : (>>1$state == 2'b10 && >>1$wait_counter == 25'd30000000)  ? // Normal gameplay
+                       2'b01
+                       
+                       : >>1$state[1:0] ;
+         $wait_counter[24:0] = >>1$reset || >>1$state == 2'b01 ? 25'b0 :
+                      (>>1$state == 2'b10 && >>1$wait_counter < 25'd30000000) ? >>1$wait_counter + 1 :
+                      25'd0;
+                       
+         $score[7:0] = >>1$reset ? 8'd0 : 
+             (>>2$led_output == 8'h80  && >>1$led_output == 8'b0) 
+                ? >>1$score == 0 
+                   ? 8'b00010000 // Start score setting
+                   : >>1$score << 1 // Increase score
+             : (>>2$led_output == 8'h01  && >>1$led_output == 8'b0)
+                ? >>1$score == 0 
+                   ? 8'b00001000 // Start score setting
+                   : >>1$score >> 1 // Increase score
+                   
+                   : >>1$score ;
+   
+         $win[1:0] = >>1$reset ? 2'd0 : 
+               (>>2$led_output == 8'h80  && >>1$led_output == 8'b0 && >>1$score == 8'h80)
+                  ? 2'b01
+               : (>>2$led_output == 8'h01  && >>1$led_output == 8'b0 && >>1$score == 8'h01)
+                  ? 2'b10
+                  : >>1$win ;
+                  
+         $left_btn = *ui_in[3];
+         $left_edge = (!>>1$left_btn && $left_btn) ;
+         $right_btn = *ui_in[1];
+         $right_edge = (!>>1$right_btn && $right_btn) ;
+         $out = $led_output ; 
+   
+   
+   
    
    |uart
       @1
