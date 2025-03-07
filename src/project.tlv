@@ -1041,7 +1041,7 @@ endmodule
          $left_edge = (!>>1$left_btn && $left_btn) ;
          $right_btn = *ui_in[1];
          $right_edge = (!>>1$right_btn && $right_btn) ;
-         $out = $led_output ; 
+         $out[7:0] = $led_output ; 
    
    
    
